@@ -17,45 +17,45 @@ MODULE DriftDiffusion
     REAl(KIND=16) :: T = 300                             !Temperature. Default room temperature.
     ! 
     ! Variable inputs and/or outputs. They will have M+1 elements.
-    REAl(KIND=16), DIMENSION(0:6000) :: X                !Node possition (m)
-    REAl(KIND=16), DIMENSION(0:6000) :: dX            !Node spacing (m)
-    REAl(KIND=16), DIMENSION(0:6000) :: n, p            !Electron and hole densities (m-3)
-    REAl(KIND=16), DIMENSION(0:6000) :: Rho            !Total charge density Rho = Nd+p-Nd-n (m-3)
-    REAl(KIND=16), DIMENSION(0:6000) :: ni               !Carrier intrinsic densities (m-3)
-    REAl(KIND=16), DIMENSION(0:6000) :: Nc, Nv        !Total effective density of states of electrons and holes (m-3)
-    REAl(KIND=16), DIMENSION(0:6000) :: Nd, Na        !Density of ionised donors and acceptors (m-3).
-    REAl(KIND=16), DIMENSION(0:6000) :: Fn, Fp        !Quasi-Fermi potential for electrons and holes (V)
-    REAl(KIND=16), DIMENSION(0:6000) :: Psi            !Electrostatic potential (V)
-    REAl(KIND=16), DIMENSION(0:6000) :: Eg            !Energy gap (eV)
-    REAl(KIND=16), DIMENSION(0:6000) :: Xi            !Electron afinity (eV)
-    REAl(KIND=16), DIMENSION(0:6000) :: Mun, Mup        !Mobilities of electrons and holes (m^2/Vs)
-    REAl(KIND=16), DIMENSION(0:6000) :: Epsi            !Relative permitivity (-)
-    REAl(KIND=16), DIMENSION(0:6000) :: Ncc, Nvhh, Nvlh        !Effective density of states of electrons and holes (m-3)
-    REAl(KIND=16), DIMENSION(0:6000) :: tn, tp          !Lifetime of minority carriers in the SRH model
-    REAl(KIND=16), DIMENSION(0:6000) :: Brad            !Radiative recombination coeficient
-    REAl(KIND=16), DIMENSION(0:6000) :: CCn, CCp        !Auger recombination coeficients
-    REAl(KIND=16), DIMENSION(0:6000) :: alfa            !Absorption coefficient. 
-    REAl(KIND=16), DIMENSION(0:6000, 0:3000) :: AbsProfile    !Absorption coefficient as a function of wavelength.
-    REAl(KIND=16), DIMENSION(0:6000) :: IQE, IQEsrh, IQErad, IQEaug, IQEsurb, IQEsurf ! Internal quantum efficiency of the device as a function of wavelength 
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: X                !Node possition (m)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: dX            !Node spacing (m)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: n, p            !Electron and hole densities (m-3)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Rho            !Total charge density Rho = Nd+p-Nd-n (m-3)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: ni               !Carrier intrinsic densities (m-3)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Nc, Nv        !Total effective density of states of electrons and holes (m-3)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Nd, Na        !Density of ionised donors and acceptors (m-3).
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Fn, Fp        !Quasi-Fermi potential for electrons and holes (V)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Psi            !Electrostatic potential (V)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Eg            !Energy gap (eV)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Xi            !Electron afinity (eV)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Mun, Mup        !Mobilities of electrons and holes (m^2/Vs)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Epsi            !Relative permitivity (-)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Ncc, Nvhh, Nvlh        !Effective density of states of electrons and holes (m-3)
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: tn, tp          !Lifetime of minority carriers in the SRH model
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Brad            !Radiative recombination coeficient
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: CCn, CCp        !Auger recombination coeficients
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: alfa            !Absorption coefficient. 
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:, :) :: AbsProfile    !Absorption coefficient as a function of wavelength.
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: IQE, IQEsrh, IQErad, IQEaug, IQEsurb, IQEsurf ! Internal quantum efficiency of the device as a function of wavelength 
     !
     ! Some derived potentials useful for the calculation
-    REAl(KIND=16), DIMENSION(0:6000) :: Vn, Vp        !Band edge potentials with respect certain reference
-    REAl(KIND=16), DIMENSION(0:6000) :: Cn, Cp        !Modified electric potentials
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Vn, Vp        !Band edge potentials with respect certain reference
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Cn, Cp        !Modified electric potentials
     !
     !
     ! Bulk generation and recombination, including all processes
-    REAl(KIND=16), DIMENSION(0:6000) :: GR            ! Generation-Recombination = Rsrh + Rrad + Raug - G
-    REAl(KIND=16), DIMENSION(0:6000) :: Rrad            ! Radiative recombination    
-    REAl(KIND=16), DIMENSION(0:6000) :: Rsrh            ! SRH recombinaiton
-    REAl(KIND=16), DIMENSION(0:6000) :: Raug            ! Auger recombinaiton
-    REAl(KIND=16), DIMENSION(0:6000) :: G                ! Generation
-    REAl(KIND=16), DIMENSION(6000) :: vpoint            ! Voltage in an IV curve
-    REAl(KIND=16), DIMENSION(6000) :: jpoint            ! Total current in an IV curve
-    REAl(KIND=16), DIMENSION(6000) :: jsrhpoint        ! SRH current in an IV curve
-    REAl(KIND=16), DIMENSION(6000) :: jradpoint        ! Radiative current in an IV curve
-    REAl(KIND=16), DIMENSION(6000) :: jaugpoint        ! Auger current in an IV curve
-    REAl(KIND=16), DIMENSION(6000) :: jsurpoint        ! Surface recombination current in an IV curve
-    REAl(KIND=16), DIMENSION(6000) :: residual        ! residual in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: GR            ! Generation-Recombination = Rsrh + Rrad + Raug - G
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Rrad            ! Radiative recombination    
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Rsrh            ! SRH recombinaiton
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: Raug            ! Auger recombinaiton
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: G                ! Generation
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: vpoint            ! Voltage in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: jpoint            ! Total current in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: jsrhpoint        ! SRH current in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: jradpoint        ! Radiative current in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: jaugpoint        ! Auger current in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: jsurpoint        ! Surface recombination current in an IV curve
+    REAl(KIND=16),  ALLOCATABLE, DIMENSION(:) :: residual        ! residual in an IV curve
     INTEGER :: nvolt = 0
 
     REAl(KIND=16) :: PhotonFlux                        ! Photon flux
@@ -2183,6 +2183,71 @@ IF(OutputLevel>=2)WRITE(ou,'(1I10,6g14.4,1I10)') niter, Jtot, sum, sum1, sum2, s
             
     END SUBROUTINE RunIQE
 !-------------------------------------------------    
+
+!-------------------------------------------------
+! New function to allocate memory arrays dynamically
+! Dimensions: meshpoints, spectralpoints
+
+    SUBROUTINE InitMemory(meshpoints, spectralpoints)
+
+        INTEGER, INTENT(IN) :: meshpoints, spectralpoints
+
+        ALLOCATE( X(0:meshpoints) )               !Node possition (m)
+        ALLOCATE( dX(0:meshpoints) )           !Node spacing (m)
+        ALLOCATE( n(0:meshpoints) )            !Electron and hole densities (m-3)
+        ALLOCATE( p(0:meshpoints) )            !Electron and hole densities (m-3)
+        ALLOCATE( Rho(0:meshpoints) )           !Total charge density Rho = Nd+p-Nd-n (m-3)
+        ALLOCATE( ni(0:meshpoints) )              !Carrier intrinsic densities (m-3)
+        ALLOCATE( Nc(0:meshpoints) )        !Total effective density of states of electrons and holes (m-3)
+        ALLOCATE( Nv(0:meshpoints) )        !Total effective density of states of electrons and holes (m-3)
+        ALLOCATE( Nd(0:meshpoints) )        !Density of ionised donors and acceptors (m-3).
+        ALLOCATE( Na(0:meshpoints) )        !Density of ionised donors and acceptors (m-3).
+        ALLOCATE( Fn(0:meshpoints) )        !Quasi-Fermi potential for electrons and holes (V)
+        ALLOCATE( Fp(0:meshpoints) )        !Quasi-Fermi potential for electrons and holes (V)
+        ALLOCATE( Psi(0:meshpoints) )           !Electrostatic potential (V)
+        ALLOCATE( Eg(0:meshpoints) )           !Energy gap (eV)
+        ALLOCATE( Xi(0:meshpoints) )           !Electron afinity (eV)
+        ALLOCATE( Mun(0:meshpoints) )           !Mobilities of electrons and holes (m^2/Vs)
+        ALLOCATE( Mup(0:meshpoints) )           !Mobilities of electrons and holes (m^2/Vs)
+        ALLOCATE( Epsi(0:meshpoints) )           !Relative permitivity (-)
+        ALLOCATE( Ncc(0:meshpoints) )        !Effective density of states of electrons and holes (m-3)
+        ALLOCATE( Nvhh(0:meshpoints) )  !Effective density of states of electrons and holes (m-3)
+        ALLOCATE( Nvlh(0:meshpoints) )        !Effective density of states of electrons and holes (m-3)
+        ALLOCATE(tn(0:meshpoints))               !Lifetime of minority carriers in the SRH model
+        ALLOCATE(tp(0:meshpoints))               !Lifetime of minority carriers in the SRH model
+        ALLOCATE(Brad(0:meshpoints)) !Radiative recombination coeficient
+        ALLOCATE(CCn(0:meshpoints))              !Auger recombination coeficients
+        ALLOCATE(CCp(0:meshpoints))              !Auger recombination coeficients
+        ALLOCATE(alfa(0:meshpoints)) !Absorption coefficient. 
+        ALLOCATE(AbsProfile(0:meshpoints, 0:spectralpoints))     !Absorption coefficient as a function of wavelength.
+        ALLOCATE(IQE(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        ALLOCATE(IQEsrh(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        ALLOCATE(IQErad(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        ALLOCATE(IQEaug(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        ALLOCATE(IQEsurb(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        ALLOCATE(IQEsurf(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        
+        ALLOCATE(Vn(0:meshpoints))  !Band edge potentials with respect certain reference
+        ALLOCATE(Vp(0:meshpoints))  !Band edge potentials with respect certain reference
+        ALLOCATE(Cn(0:meshpoints))  !Modified electric potentials
+        ALLOCATE(Cp(0:meshpoints))  !Modified electric potentials
+        
+        
+        ALLOCATE(GR(0:meshpoints)) ! Generation-Recombination = Rsrh + Rrad + Raug - G
+        ALLOCATE(Rrad(0:meshpoints)) ! Radiative recombination    
+        ALLOCATE(Rsrh(0:meshpoints)) ! SRH recombinaiton
+        ALLOCATE(Raug(0:meshpoints)) ! Auger recombinaiton
+        ALLOCATE(G(0:meshpoints)) ! Generation
+        ALLOCATE(vpoint(meshpoints)) ! Voltage in an IV curve
+        ALLOCATE(jpoint(meshpoints)) ! Total current in an IV curve
+        ALLOCATE(jsrhpoint(meshpoints)) ! Total current in an IV curve
+        ALLOCATE(jradpoint(meshpoints)) ! Total current in an IV curve
+        ALLOCATE(jaugpoint(meshpoints)) ! Total current in an IV curve
+        ALLOCATE(jsurpoint(meshpoints)) ! Total current in an IV curve
+        ALLOCATE(residual(meshpoints)) ! Total current in an IV curve
+
+    END SUBROUTINE InitMemory
+
 END MODULE
 
 
