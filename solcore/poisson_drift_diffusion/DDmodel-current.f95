@@ -59,7 +59,7 @@ MODULE DriftDiffusion
     INTEGER :: nvolt = 0
 
     REAl(KIND=16) :: PhotonFlux                        ! Photon flux
-    REAl(KIND=16), DIMENSION(0:3000) :: PFspectrum = 0.0    ! Photon flux as a function of wavelength (same wl that the abs. coef.)
+    REAl(KIND=16), ALLOCATABLE, DIMENSION(:) :: PFspectrum    ! Photon flux as a function of wavelength (same wl that the abs. coef.)
     INTEGER :: SRH, RAD, AUG, GEN                ! 1 = Included, 0 = Not included
     REAl(KIND=16) :: Jtot2, CurrentsBias(6), Currents(6)
     LOGICAL :: SingleWL = .FALSE.                ! Controls the generation in IQE running mode
@@ -94,7 +94,7 @@ MODULE DriftDiffusion
     REAl(KIND=16) :: DML(1:1000, 20)                     ! DeviceMaterialsLibrary, array containing all the properties of the materials 
                                                 ! used in the device.
     REAl(KIND=16) :: DoppingLibrary(200, 4)            ! An array containing all the constant doping profiles used in the device.
-    REAl(KIND=16) :: AbsLibrary(-1:1000, 0:3000) = 0.0    ! An array containing all the absorption profiles used in the device.
+    REAl(KIND=16), ALLOCATABLE, DIMENSION(:,:) :: AbsLibrary    ! An array containing all the absorption profiles used in the device.
     INTEGER :: MGrid = 1                         ! The number of grid lines (Max MGrid=200)
     INTEGER :: MReg  = 0                         ! The number of different material regions (Max MReg=200)
 
@@ -118,9 +118,9 @@ MODULE DriftDiffusion
     !     - f(3k) corresponds to the Poisson equation, associated to Psi
     !     - f(3k+1) corresponds to the continuity of Jn, associated to Fn
     ! The total vector of equations with 3M-1 elements and auxiliary vector
-    REAl(KIND=16), DIMENSION(18003) :: f, dsol
+    REAl(KIND=16), ALLOCATABLE, DIMENSION(:) :: f, dsol
     ! The Jacobian matrix in compact form. It only contains the non-zero elements
-    REAl(KIND=16), DIMENSION(18003,11) :: Jac
+    REAl(KIND=16), ALLOCATABLE, DIMENSION(:,:) :: Jac
     !
     !
     ! Scaling factors
@@ -141,6 +141,13 @@ MODULE DriftDiffusion
     ! ---------------------------------------------------------------------------
     ! End of the definition of global variables
     ! ---------------------------------------------------------------------------
+
+    ! Variables to store the main dimension of the arrays.
+    ! Currently only meshpoints and spectralpoints can dynamically
+    ! be defined.
+
+    INTEGER :: M_meshpoints
+    INTEGER :: M_spectralpoints
     
 CONTAINS
 !-------------------------------------------------
@@ -399,6 +406,7 @@ CONTAINS
         INTEGER :: MM
         
         IF (MM>0) THEN
+            
             M = MM
             DO i = 0, M
                 X(i)  = i*XD/M
@@ -514,14 +522,25 @@ CONTAINS
         INTEGER :: Initial
         ! Internal variables
         INTEGER :: i, j, k, l, frac, NodesPerRegion(1:MGrid), ilast
-        REAl(KIND=16) :: Xtemp(0:6000), Dpot, Dmaj, Dpot2, Dmaj2, Dvar, Dvar2, RegionSize(1:MGrid), DGR, DGR2, minSize
+        REAl(KIND=16) :: Dpot, Dmaj, Dpot2, Dmaj2, Dvar, Dvar2, RegionSize(1:MGrid), DGR, DGR2, minSize
+        REAl(KIND=16), DIMENSION(0:M_meshpoints) :: Xtemp
         REAl(KIND=16) :: psiint, fpint, fnint, nint, pint, Gint, step
-        LOGICAL :: Join, NotMasterNode(0:6000)
+        LOGICAL, DIMENSION(0:M_meshpoints) :: NotMasterNode
+        LOGICAL :: Join
         
         ! Temporal material arrays
-        REAl(KIND=16), DIMENSION(0:6000) :: TempFn, TempFp        !Quasi-Fermi potential for electrons and holes (V)
-        REAl(KIND=16), DIMENSION(0:6000) :: TempPsi                !Electrostatic potential (V)
-        REAl(KIND=16), DIMENSION(0:6000, 0:3000) :: TempAbsProfile!Absorption coefficient as a function of wavelength.
+        REAl(KIND=16), DIMENSION(0:M_meshpoints) :: TempFn, TempFp        !Quasi-Fermi potential for electrons and holes (V)
+        REAl(KIND=16), DIMENSION(0:M_meshpoints) :: TempPsi                !Electrostatic potential (V)
+        REAl(KIND=16), DIMENSION(0:M_meshpoints, 0:M_spectralpoints) :: TempAbsProfile!Absorption coefficient as a function of wavelength.
+
+        ! In principle it is not needed as arrays in prcedures are dynamically allocated
+        !IF (.NOT. ALLOCATED(Xtemp)) ALLOCATE(Xtemp(0:M_meshpoints))
+        !IF (.NOT. ALLOCATED(NotMasterNode)) ALLOCATE(NotMasterNode(0:M_meshpoints))
+        !IF (.NOT. ALLOCATED(TempFn)) ALLOCATE(TempFn(0:M_meshpoints))
+        !IF (.NOT. ALLOCATED(TempFp)) ALLOCATE(TempFp(0:M_meshpoints))
+        !IF (.NOT. ALLOCATED(TempPsi)) ALLOCATE(TempPsi(0:M_meshpoints))
+        !IF (.NOT. ALLOCATED(TempAbsProfile)) ALLOCATE(TempAbsProfile(0:M_meshpoints, 0:M_spectralpoints))
+
         
         l = 1
         RegionSize = 0.0
@@ -2189,62 +2208,78 @@ IF(OutputLevel>=2)WRITE(ou,'(1I10,6g14.4,1I10)') niter, Jtot, sum, sum1, sum2, s
 ! Dimensions: meshpoints, spectralpoints
 
     SUBROUTINE InitMemory(meshpoints, spectralpoints)
+        IMPLICIT NONE
 
-        INTEGER, INTENT(IN) :: meshpoints, spectralpoints
+        INTEGER :: meshpoints, spectralpoints
 
-        ALLOCATE( X(0:meshpoints) )               !Node possition (m)
-        ALLOCATE( dX(0:meshpoints) )           !Node spacing (m)
-        ALLOCATE( n(0:meshpoints) )            !Electron and hole densities (m-3)
-        ALLOCATE( p(0:meshpoints) )            !Electron and hole densities (m-3)
-        ALLOCATE( Rho(0:meshpoints) )           !Total charge density Rho = Nd+p-Nd-n (m-3)
-        ALLOCATE( ni(0:meshpoints) )              !Carrier intrinsic densities (m-3)
-        ALLOCATE( Nc(0:meshpoints) )        !Total effective density of states of electrons and holes (m-3)
-        ALLOCATE( Nv(0:meshpoints) )        !Total effective density of states of electrons and holes (m-3)
-        ALLOCATE( Nd(0:meshpoints) )        !Density of ionised donors and acceptors (m-3).
-        ALLOCATE( Na(0:meshpoints) )        !Density of ionised donors and acceptors (m-3).
-        ALLOCATE( Fn(0:meshpoints) )        !Quasi-Fermi potential for electrons and holes (V)
-        ALLOCATE( Fp(0:meshpoints) )        !Quasi-Fermi potential for electrons and holes (V)
-        ALLOCATE( Psi(0:meshpoints) )           !Electrostatic potential (V)
-        ALLOCATE( Eg(0:meshpoints) )           !Energy gap (eV)
-        ALLOCATE( Xi(0:meshpoints) )           !Electron afinity (eV)
-        ALLOCATE( Mun(0:meshpoints) )           !Mobilities of electrons and holes (m^2/Vs)
-        ALLOCATE( Mup(0:meshpoints) )           !Mobilities of electrons and holes (m^2/Vs)
-        ALLOCATE( Epsi(0:meshpoints) )           !Relative permitivity (-)
-        ALLOCATE( Ncc(0:meshpoints) )        !Effective density of states of electrons and holes (m-3)
-        ALLOCATE( Nvhh(0:meshpoints) )  !Effective density of states of electrons and holes (m-3)
-        ALLOCATE( Nvlh(0:meshpoints) )        !Effective density of states of electrons and holes (m-3)
-        ALLOCATE(tn(0:meshpoints))               !Lifetime of minority carriers in the SRH model
-        ALLOCATE(tp(0:meshpoints))               !Lifetime of minority carriers in the SRH model
-        ALLOCATE(Brad(0:meshpoints)) !Radiative recombination coeficient
-        ALLOCATE(CCn(0:meshpoints))              !Auger recombination coeficients
-        ALLOCATE(CCp(0:meshpoints))              !Auger recombination coeficients
-        ALLOCATE(alfa(0:meshpoints)) !Absorption coefficient. 
-        ALLOCATE(AbsProfile(0:meshpoints, 0:spectralpoints))     !Absorption coefficient as a function of wavelength.
-        ALLOCATE(IQE(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
-        ALLOCATE(IQEsrh(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
-        ALLOCATE(IQErad(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
-        ALLOCATE(IQEaug(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
-        ALLOCATE(IQEsurb(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
-        ALLOCATE(IQEsurf(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        ! Store the values of the dimensions in module variables
+        M_meshpoints =  meshpoints
+        M_spectralpoints =  spectralpoints
+
+        IF (.NOT. ALLOCATED(X)) ALLOCATE( X(0:meshpoints) )               !Node possition (m)
+        IF (.NOT. ALLOCATED(dX)) ALLOCATE( dX(0:meshpoints) )           !Node spacing (m)
+        IF (.NOT. ALLOCATED(n)) ALLOCATE( n(0:meshpoints) )            !Electron and hole densities (m-3)
+        IF (.NOT. ALLOCATED(p)) ALLOCATE( p(0:meshpoints) )            !Electron and hole densities (m-3)
+        IF (.NOT. ALLOCATED(Rho)) ALLOCATE( Rho(0:meshpoints) )           !Total charge density Rho = Nd+p-Nd-n (m-3)
+        IF (.NOT. ALLOCATED(ni)) ALLOCATE( ni(0:meshpoints) )              !Carrier intrinsic densities (m-3)
+        IF (.NOT. ALLOCATED(Nc)) ALLOCATE( Nc(0:meshpoints) )        !Total effective density of states of electrons and holes (m-3)
+        IF (.NOT. ALLOCATED(Nv)) ALLOCATE( Nv(0:meshpoints) )        !Total effective density of states of electrons and holes (m-3)
+        IF (.NOT. ALLOCATED(Nd)) ALLOCATE( Nd(0:meshpoints) )        !Density of ionised donors and acceptors (m-3).
+        IF (.NOT. ALLOCATED(Na)) ALLOCATE( Na(0:meshpoints) )        !Density of ionised donors and acceptors (m-3).
+        IF (.NOT. ALLOCATED(Fn)) ALLOCATE( Fn(0:meshpoints) )        !Quasi-Fermi potential for electrons and holes (V)
+        IF (.NOT. ALLOCATED(Fp)) ALLOCATE( Fp(0:meshpoints) )        !Quasi-Fermi potential for electrons and holes (V)
+        IF (.NOT. ALLOCATED(Psi)) ALLOCATE( Psi(0:meshpoints) )           !Electrostatic potential (V)
+        IF (.NOT. ALLOCATED(Eg)) ALLOCATE( Eg(0:meshpoints) )           !Energy gap (eV)
+        IF (.NOT. ALLOCATED(Xi)) ALLOCATE( Xi(0:meshpoints) )           !Electron afinity (eV)
+        IF (.NOT. ALLOCATED(Mun)) ALLOCATE( Mun(0:meshpoints) )           !Mobilities of electrons and holes (m^2/Vs)
+        IF (.NOT. ALLOCATED(Mup)) ALLOCATE( Mup(0:meshpoints) )           !Mobilities of electrons and holes (m^2/Vs)
+        IF (.NOT. ALLOCATED(Epsi)) ALLOCATE( Epsi(0:meshpoints) )           !Relative permitivity (-)
+        IF (.NOT. ALLOCATED(Ncc)) ALLOCATE( Ncc(0:meshpoints) )        !Effective density of states of electrons and holes (m-3)
+        IF (.NOT. ALLOCATED(Nvhh)) ALLOCATE( Nvhh(0:meshpoints) )  !Effective density of states of electrons and holes (m-3)
+        IF (.NOT. ALLOCATED(Nvlh)) ALLOCATE( Nvlh(0:meshpoints) )        !Effective density of states of electrons and holes (m-3)
+        IF (.NOT. ALLOCATED(tn)) ALLOCATE(tn(0:meshpoints))               !Lifetime of minority carriers in the SRH model
+        IF (.NOT. ALLOCATED(tp)) ALLOCATE(tp(0:meshpoints))               !Lifetime of minority carriers in the SRH model
+        IF (.NOT. ALLOCATED(Brad)) ALLOCATE(Brad(0:meshpoints)) !Radiative recombination coeficient
+        IF (.NOT. ALLOCATED(CCn)) ALLOCATE(CCn(0:meshpoints))              !Auger recombination coeficients
+        IF (.NOT. ALLOCATED(CCp)) ALLOCATE(CCp(0:meshpoints))              !Auger recombination coeficients
+        IF (.NOT. ALLOCATED(alfa)) ALLOCATE(alfa(0:meshpoints)) !Absorption coefficient. 
+        IF (.NOT. ALLOCATED(AbsProfile)) ALLOCATE(AbsProfile(0:meshpoints, 0:spectralpoints))     !Absorption coefficient as a function of wavelength.
+        IF (.NOT. ALLOCATED(IQE)) ALLOCATE(IQE(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        IF (.NOT. ALLOCATED(IQEsrh)) ALLOCATE(IQEsrh(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        IF (.NOT. ALLOCATED(IQErad)) ALLOCATE(IQErad(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        IF (.NOT. ALLOCATED(IQEaug)) ALLOCATE(IQEaug(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        IF (.NOT. ALLOCATED(IQEsurb)) ALLOCATE(IQEsurb(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
+        IF (.NOT. ALLOCATED(IQEsurf)) ALLOCATE(IQEsurf(0:meshpoints))  ! Internal quantum efficiency of the device as a function of wavelength 
         
-        ALLOCATE(Vn(0:meshpoints))  !Band edge potentials with respect certain reference
-        ALLOCATE(Vp(0:meshpoints))  !Band edge potentials with respect certain reference
-        ALLOCATE(Cn(0:meshpoints))  !Modified electric potentials
-        ALLOCATE(Cp(0:meshpoints))  !Modified electric potentials
+        IF (.NOT. ALLOCATED(Vn)) ALLOCATE(Vn(0:meshpoints))  !Band edge potentials with respect certain reference
+        IF (.NOT. ALLOCATED(Vp)) ALLOCATE(Vp(0:meshpoints))  !Band edge potentials with respect certain reference
+        IF (.NOT. ALLOCATED(Cn)) ALLOCATE(Cn(0:meshpoints))  !Modified electric potentials
+        IF (.NOT. ALLOCATED(Cp)) ALLOCATE(Cp(0:meshpoints))  !Modified electric potentials
         
         
-        ALLOCATE(GR(0:meshpoints)) ! Generation-Recombination = Rsrh + Rrad + Raug - G
-        ALLOCATE(Rrad(0:meshpoints)) ! Radiative recombination    
-        ALLOCATE(Rsrh(0:meshpoints)) ! SRH recombinaiton
-        ALLOCATE(Raug(0:meshpoints)) ! Auger recombinaiton
-        ALLOCATE(G(0:meshpoints)) ! Generation
-        ALLOCATE(vpoint(meshpoints)) ! Voltage in an IV curve
-        ALLOCATE(jpoint(meshpoints)) ! Total current in an IV curve
-        ALLOCATE(jsrhpoint(meshpoints)) ! Total current in an IV curve
-        ALLOCATE(jradpoint(meshpoints)) ! Total current in an IV curve
-        ALLOCATE(jaugpoint(meshpoints)) ! Total current in an IV curve
-        ALLOCATE(jsurpoint(meshpoints)) ! Total current in an IV curve
-        ALLOCATE(residual(meshpoints)) ! Total current in an IV curve
+        IF (.NOT. ALLOCATED(GR)) ALLOCATE(GR(0:meshpoints)) ! Generation-Recombination = Rsrh + Rrad + Raug - G
+        IF (.NOT. ALLOCATED(Rrad)) ALLOCATE(Rrad(0:meshpoints)) ! Radiative recombination    
+        IF (.NOT. ALLOCATED(Rsrh)) ALLOCATE(Rsrh(0:meshpoints)) ! SRH recombinaiton
+        IF (.NOT. ALLOCATED(Raug)) ALLOCATE(Raug(0:meshpoints)) ! Auger recombinaiton
+        IF (.NOT. ALLOCATED(G)) ALLOCATE(G(0:meshpoints)) ! Generation
+        IF (.NOT. ALLOCATED(Raug)) ALLOCATE(vpoint(meshpoints)) ! Voltage in an IV curve
+        IF (.NOT. ALLOCATED(jpoint)) ALLOCATE(jpoint(meshpoints)) ! Total current in an IV curve
+        IF (.NOT. ALLOCATED(jsrhpoint)) ALLOCATE(jsrhpoint(meshpoints)) ! Total current in an IV curve
+        IF (.NOT. ALLOCATED(jradpoint)) ALLOCATE(jradpoint(meshpoints)) ! Total current in an IV curve
+        IF (.NOT. ALLOCATED(jaugpoint)) ALLOCATE(jaugpoint(meshpoints)) ! Total current in an IV curve
+        IF (.NOT. ALLOCATED(jsurpoint)) ALLOCATE(jsurpoint(meshpoints)) ! Total current in an IV curve
+        IF (.NOT. ALLOCATED(residual)) ALLOCATE(residual(meshpoints)) ! Total current in an IV curve
+
+        IF (.NOT. ALLOCATED(PFspectrum)) ALLOCATE(PFspectrum(0:spectralpoints))
+        PFspectrum = 0.0    ! Photon flux as a function of wavelength (same wl that the abs. coef.)
+
+        IF (.NOT. ALLOCATED(AbsLibrary)) ALLOCATE(AbsLibrary(-1:1000, 0:spectralpoints))  ! An array containing all the absorption profiles used in the device.
+        AbsLibrary = 0.0
+        IF (.NOT. ALLOCATED(f)) ALLOCATE(f(3*(meshpoints +  1)))
+        IF (.NOT. ALLOCATED(dsol)) ALLOCATE(dsol(3*(meshpoints +  1)))
+        IF (.NOT. ALLOCATED(Jac)) ALLOCATE(Jac(3*(meshpoints +  1),11))
+
+        RETURN
 
     END SUBROUTINE InitMemory
 

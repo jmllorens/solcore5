@@ -54,6 +54,16 @@ def ProcessStructure(device, meshpoints, wavelengths=None):
     :param wavelengths: (Optional) Wavelengths at which to calculate the optical properties.
     :return: Dictionary containing the device structure properties as a function of the position.
     """
+    # First of all we have to call dd.initmemory to allocate the arrays used in fortran.
+    # They are only allocated if they were not allocated previously
+    # JML: It is not yet clear to me what is the mandatory dimension of spectralpoints
+    if wavelength is not None:
+        spectralpoints = len(wavelengths)
+    else:
+        # This was the value used in fortran by default
+        # Perhaps can be changed to a smaller one as test proceed
+        spectralpoints = 3000
+    dd.initmemory(meshpoints, spectralpoints)
     print('Processing structure...')
     # First, we clean any previous data from the Fortran code
     dd.reset()
