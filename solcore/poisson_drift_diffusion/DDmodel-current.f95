@@ -826,7 +826,8 @@ CONTAINS
     END SUBROUTINE Reset
 !-------------------------------------------------    
     FUNCTION Get(VarName)                                
-        REAl(KIND=8) :: Get (0:6000)
+        !REAl(KIND=8), ALLOCATABLE :: Get (0:6000)
+        REAl(KIND=8), ALLOCATABLE :: Get 
         INTEGER:: k
         CHARACTER(len=30) :: VarName
         
@@ -1950,7 +1951,7 @@ IF(OutputLevel>=2)WRITE(ou,'(1I10,6g14.4,1I10)') niter, Jtot, sum, sum1, sum2, s
         REAl(KIND=16) :: start_time, end_time
         REAl(KIND=16) :: sum, Jtot, Jsrh, Jrad, Jaug, Jsur
         REAl(KIND=16) :: photonfluxini, PFspectrumini(0:NumWL), PF, PFWL(0:NumWL)!, TempG 
-        REAl(KIND=16), DIMENSION(0:6000) :: TempG    
+        REAl(KIND=16), DIMENSION(0:M_meshpoints) :: TempG    
         INTEGER :: info, i, j, k, maxsteps, qmode
         REAl(KIND=16) :: dum1, dum2, dum3, dum4, dum5, dum7     ! Dummy variables that must be different. 
         INTEGER :: dum6
@@ -2158,7 +2159,7 @@ IF(OutputLevel>=2)WRITE(ou,'(1I10,6g14.4,1I10)') niter, Jtot, sum, sum1, sum2, s
         REAl(KIND=16) :: Jbias
         INTEGER :: info, niter
         INTEGER :: i, k, maxsteps
-        REAl(KIND=16), DIMENSION(0:6000) :: TempG    
+        REAl(KIND=16), DIMENSION(0:M_meshpoints) :: TempG    
 
         CALL open_log()
             
@@ -2262,7 +2263,7 @@ IF(OutputLevel>=2)WRITE(ou,'(1I10,6g14.4,1I10)') niter, Jtot, sum, sum1, sum2, s
         IF (.NOT. ALLOCATED(Rsrh)) ALLOCATE(Rsrh(0:meshpoints)) ! SRH recombinaiton
         IF (.NOT. ALLOCATED(Raug)) ALLOCATE(Raug(0:meshpoints)) ! Auger recombinaiton
         IF (.NOT. ALLOCATED(G)) ALLOCATE(G(0:meshpoints)) ! Generation
-        IF (.NOT. ALLOCATED(Raug)) ALLOCATE(vpoint(meshpoints)) ! Voltage in an IV curve
+        IF (.NOT. ALLOCATED(vpoint)) ALLOCATE(vpoint(meshpoints)) ! Voltage in an IV curve
         IF (.NOT. ALLOCATED(jpoint)) ALLOCATE(jpoint(meshpoints)) ! Total current in an IV curve
         IF (.NOT. ALLOCATED(jsrhpoint)) ALLOCATE(jsrhpoint(meshpoints)) ! Total current in an IV curve
         IF (.NOT. ALLOCATED(jradpoint)) ALLOCATE(jradpoint(meshpoints)) ! Total current in an IV curve
